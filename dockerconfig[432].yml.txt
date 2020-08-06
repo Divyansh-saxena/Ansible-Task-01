@@ -1,0 +1,94 @@
+- hosts: 192.168.43.197
+  tasks:
+    - name: Docker
+      yum_repository:
+          name: Docker
+          description: Docker YUM congifuration
+          baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+          gpgcheck: no
+          enabled: yes
+
+    - name: DVD Mount
+      command: mount /dev/cdrom  /dvd/
+      ignore_errors: True
+
+    - name: epel-release Copy 
+      copy: 
+        src: /root/epel-release-latest-8.noarch.rpm
+        dest: /root/
+
+    - name: Docker Installation
+      package:
+        name: 
+          - docker-ce-3:18.09.1-3.el7
+        state: latest
+     
+    - name: Python 3 Installation
+      package:
+        name: 
+          - python3
+        state: present
+
+    - name: Docker-py Installation
+      pip:
+        name: docker-py
+
+    - name: Docker Service Start
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - firewalld:
+        port: 8080/tcp
+        permanent: yes
+        state: enabled
+        zone: public
+
+    - firewalld:
+        port: 80/tcp
+        permanent: yes
+        state: enabled
+        zone: public
+
+    - firewalld:
+        port: 443/tcp
+        permanent: yes
+        state: enabled
+        zone: public
+
+    - firewalld:
+        masquerade: yes
+        permanent: yes
+        state: enabled
+        zone: public
+
+    - name: Firewall Restart
+      service:
+        name: firewalld
+        state: reloaded
+        enabled: yes
+
+    - name: Image Pull
+      docker_image:
+        name: httpd
+        source: pull
+
+    - name: Container Launch
+      docker_container:
+        name: ApacheServer
+        image: httpd
+        state: started
+        exposed_ports:  
+          - 80
+        ports:
+          - "80:80"
+        volumes:
+          - /webpage:/usr/local/apache2/htdocs     
+
+    - name: Docker Service Restart
+      service:
+        name: docker
+        state: reloaded
+        enabled: yes
+
